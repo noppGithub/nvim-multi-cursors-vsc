@@ -1,0 +1,126 @@
+*multi_cursors_vsc.txt*  VSCode-style multi-cursor editing
+
+==============================================================================
+CONTENTS                                          *multi_cursors_vsc-contents*
+
+  1. Introduction ............................ |multi_cursors_vsc-intro|
+  2. Usage ................................... |multi_cursors_vsc-usage|
+  3. Commands ................................ |multi_cursors_vsc-commands|
+  4. Configuration ........................... |multi_cursors_vsc-config|
+  5. Lua API ................................. |multi_cursors_vsc-api|
+
+==============================================================================
+1. INTRODUCTION                                      *multi_cursors_vsc-intro*
+
+Select lines, press Alt+Shift+i (Option+Shift+i on macOS) and a cursor
+appears at the end of every selected line. Everything typed in insert mode is
+mirrored at every cursor. Leave insert mode (<Esc>, or a mapping such as
+`jj`) to finish.
+
+==============================================================================
+2. USAGE                                             *multi_cursors_vsc-usage*
+
+In |Visual| or |linewise-visual| mode, <M-I> adds a cursor at the end of
+every selected line. When the key pressed right before <M-I> was |0|, the
+cursors go to column 0 of every selected line instead, with |^| to the first
+non-blank character. Example: `vip0<M-I>`
+
+In |blockwise-visual| mode, <M-I> adds a cursor per line at the left edge of
+the block. Lines too short to reach it are skipped. After `$` the cursors go
+to the line ends instead.
+
+While typing, these are mirrored at every cursor: inserted text, <CR>, <BS>,
+<Del>, |i_CTRL-W|, |i_CTRL-U|, completion and mappings. <Left> and <Right>
+move every cursor by one character. <Home> moves every cursor to the first
+non-blank of its own line (again: column 0), <End> to its line end. Moving to
+another line ends the session and keeps the text typed so far.
+
+                                                   *multi_cursors_vsc-matches*
+After a search, <M-L> (Alt+Shift+l) in Normal mode adds a cursor right
+after every match of the last search pattern, like VSCode's "Select All
+Occurrences" followed by <Right>, so typing never wipes the matches by
+accident. In Visual mode only the matches in the selected lines are used.
+'ignorecase' and 'smartcase' apply like for |n|.
+Tip: `/^` then <M-L> puts a cursor at the start of every line.
+
+With `select_matches = true` the matches are selected instead, like VSCode:
+  - typing replaces every match, <BS> deletes every match,
+  - <Left> / <Right> keep the matches and move to their start / end,
+  - <Esc> cancels.
+Search highlighting is then turned off (like |:nohlsearch|) so the
+selections are visible.
+
+A single |u| undoes the whole multi-cursor edit.
+
+On macOS, the terminal must send Option as Alt/Meta, see the README.
+
+==============================================================================
+3. COMMANDS                                       *multi_cursors_vsc-commands*
+
+                                                      *:MultiCursorsLineEnds*
+:[range]MultiCursorsLineEnds
+    Add a cursor at the end of every line in [range] and enter insert mode.
+
+                                                       *:MultiCursorsMatches*
+:[range]MultiCursorsMatches
+    Add a cursor on every match of the last search pattern in [range]
+    (default: the whole buffer), see |multi_cursors_vsc-matches|.
+
+                                                           *:MultiCursorsStop*
+:MultiCursorsStop
+    Stop the active session. Text stays, the extra cursors disappear.
+
+==============================================================================
+4. CONFIGURATION                                    *multi_cursors_vsc-config*
+
+>lua
+    require("multi_cursors_vsc").setup({
+      keymaps = {
+        -- Visual mode: a cursor at the end of every selected line.
+        line_ends = "<M-I>",
+        -- Normal/Visual mode: a cursor on every match of the last search.
+        matches = "<M-L>",
+      },
+      -- Select the matches so typing replaces them, instead of putting
+      -- the cursors right after them.
+      select_matches = false,
+      -- Highlight group for the extra cursors.
+      hl_group = "MultiCursorsVscCursor",
+      -- Highlight group for the selected matches (select_matches = true).
+      selection_hl_group = "MultiCursorsVscSelection",
+    })
+<
+                                                      *MultiCursorsVscCursor*
+MultiCursorsVscCursor
+    Highlight of the extra cursors. Reverse video by default.
+
+                                                   *MultiCursorsVscSelection*
+MultiCursorsVscSelection
+    Highlight of the selected matches. Linked to |hl-Visual| by default.
+
+==============================================================================
+5. LUA API                                             *multi_cursors_vsc-api*
+
+require("multi_cursors_vsc").add_cursors_from_visual()
+    Add cursors from the current visual selection. Meant to be mapped in
+    Visual mode.
+
+require("multi_cursors_vsc").add_cursors_to_line_ends({first}, {last}, {lnum})
+    Add a cursor at the end of lines {first} to {last} (1-based) and start
+    typing on line {lnum}.
+
+require("multi_cursors_vsc").add_cursors_to_line_starts({first}, {last}, {lnum}, {first_non_blank})
+    Like add_cursors_to_line_ends(), at column 0 of every line, or at the
+    first non-blank character when {first_non_blank} is true.
+
+require("multi_cursors_vsc").add_cursors_to_matches({first}, {last})
+    Add a cursor on every match of the last search pattern in lines {first}
+    to {last} (1-based, default the whole buffer).
+
+require("multi_cursors_vsc").stop()
+    Stop the active session.
+
+require("multi_cursors_vsc").is_active()
+    Whether a session is active.
+
+ vim:tw=78:ts=8:ft=help:norl:
